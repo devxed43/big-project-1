@@ -1,31 +1,99 @@
-# Image Editing, Memes
-from PIL import Image
 from PIL import ImageDraw, ImageFont
-import imageio.v3 as iio
-from io import BytesIO
-
-# Media - music, video, etc
-from fpdf import FPDF
+import matplotlib.pyplot as plt
+from text_to_speech import save
 from pydub import AudioSegment
-from pydub import effects
-
-# HTTP library
-import requests
-import json
 from config import BLS_API_KEY
-
-# comma seperated values files -> excel
+import imageio.v3 as iio
+from pydub import effects
+from io import BytesIO
+from fpdf import FPDF
+from PIL import Image
+import requests
+import qrcode
+import json
 import csv
 
-# QR code
-import qrcode
 
-# charts
-import matplotlib.pyplot as plt
+def vid_to_gif():
+    from moviepy import VideoFileClip
+    import os
+    import yt_dlp
 
-# text to speech
-from text_to_speech import save
+    url = input("Enter video url (YouTube, etc.): ").strip()
+    start = float(input("Enter start time in seconds: "))
+    end = float(input("Enter end time in seconds: "))
+    output_name = input("Enter output filename: ").strip()
 
+    temp_video = "temp_video.mp4"
+
+    print("Downloading video for processing...please wait...")
+
+    ydl_opts = {
+        "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]",
+        "outtmpl": "temp_video.%(ext)s",
+        "merge_output_format": "mp4",
+        "quiet": True
+    }
+
+    temp_video = None
+
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+            temp_video = ydl.prepare_filename(info)
+
+        if not os.path.exists(temp_video):
+            raise FileNotFoundError(f"Downloaded file not found: {temp_video}")
+
+        print(f"Cutting clip from {start}s to {end}s...")
+        clip = VideoFileClip(temp_video).subclipped(start, end).resized(width=480)
+
+        print("⚡️ Generating GIF...")
+        clip.write_gif(output_name, fps=10)
+        clip.close()
+
+        print(f"✅ Gif saved!")
+
+        if os.path.exists(temp_video):
+            os.remove(temp_video)
+
+        print(f"✅ GIF SUCCESSFULLY CREATED! Saved as {output_name}")
+
+    except Exception as e:
+        print(f"❌ Something went wrong: {e}")
+
+    finally:
+        if temp_video and os.path.exists(temp_video):
+            os.remove(temp_video)
+
+def voice_record():
+    import sounddevice as sd
+    import soundfile as sf
+    import numpy as np
+
+    SAMPLE_RATE = 44100
+    CHANNELS = 1
+    FILENAME = 'recording.wav'
+    DURATION = 3
+
+    print("Recording...")
+
+    audio_data = sd.rec(
+        int(DURATION * SAMPLE_RATE),
+        samplerate=SAMPLE_RATE,
+        channels=CHANNELS,
+        dtype='float32'
+    )
+
+    sd.wait()
+    print("Done!")
+
+    sf.write(FILENAME, audio_data, SAMPLE_RATE)
+    print(f"Saved to {FILENAME}")
+
+    # data, sr = sf.read(FILENAME)
+    # sd.play(data, sr)
+    # sd.wait()
 
 def alarm_clock():
     import time
@@ -65,17 +133,14 @@ def alarm_clock():
 
         time.sleep(30)
 
-
 def read_todos():
     with open('todos.txt', 'r') as file:
         print(file.read())
-
 
 def add_todo():
     add = input("enter item: ")
     with open('todos.txt', 'a') as file:
         file.writelines(f'{add}\n')
-
 
 def newsletter_signup():
     first_name = input("First Name: ")
@@ -91,7 +156,6 @@ def newsletter_signup():
 
     print("Thank You for signing up for the bands touring list!")
 
-
 def add_todos():
     print("Note: type 'done' to exit and get your new list")
     while True:
@@ -101,7 +165,6 @@ def add_todos():
         else:
             with open('todos.txt', 'a') as file:
                 file.writelines(f'{tsk}\n')
-
 
 def edit_todo():
     with open('todos.txt', 'r') as file:
@@ -119,7 +182,6 @@ def edit_todo():
             file.writelines(updated)
         return True
 
-
 def edit_todos():
     with open('todos.txt', 'r') as file:
         lines = file.readlines()
@@ -133,7 +195,6 @@ def edit_todos():
 
         with open('todos.txt', 'w') as file:
             file.writelines(updated)
-
 
 def delete_todo():
     with open("todos.txt", "r") as file:
@@ -151,12 +212,10 @@ def delete_todo():
             file.writelines(updated)
         return True
 
-
 def delete_todos():
     with open("todos.txt", "w") as file:
         file.write("")
     print("items deleted")
-
 
 def speechify():
     with open("todos.txt", "r") as file:
@@ -172,7 +231,6 @@ def speechify():
 
         save(todo_content, language, file=output_file)
         print(f'VOICE ANALYSIS COMPLETE! {output_file}')
-
 
 def pdfify():
     with open("todos.txt", "r", encoding="utf-8") as file:
@@ -200,7 +258,6 @@ def pdfify():
     pdf.output(output_file)
     print(f"PDF SUCCESSFULLY CREATED! Check {output_file}")
 
-
 def csvify():
     with open("contacts.txt", "r") as txt_file, open("contacts.csv", "w", newline="") as csv_file:
         writer = csv.writer(csv_file)
@@ -216,7 +273,6 @@ def csvify():
                 writer.writerow(task.split(','))
 
     print("CSV conversion complete!")
-
 
 def gifify():
     # https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSmXvgBhvPpWFWiAkAGHWsqX1Ci96z-kdX32w&s
@@ -234,7 +290,6 @@ def gifify():
 
     print("🚀 Creating GIF now...let the roasts begin! 🔥")
     iio.imwrite('result.gif', resized_images, duration=200, loop=0)
-
 
 def pixel_art():
     url = input("enter image url: ").strip()
@@ -257,7 +312,6 @@ def pixel_art():
     result.save(output_name)
     print(f"👾 PIXEL ART COMPLETE! saved as {output_name}")
 
-
 def alter_img1():
     img = Image.open("color-1.jpg")
     img = img.convert("RGB")
@@ -276,7 +330,6 @@ def alter_img1():
     img.putdata(new_image)
 
     img.save("new-color-1.jpg")
-
 
 def export_audio():
     filename = input(
@@ -324,13 +377,11 @@ def export_audio():
     export_map[choice].export(out_name, format=out_format)
     print(f"Exported as {out_name}")
 
-
 def make_qrcode():
     data_to_encode = input("enter a url to create a QR code: ").strip().lower()
     img = qrcode.make(data_to_encode)
     img.save("QR-code.png")
     print("✅ QR code generated! 🔥")
-
 
 def chartify():
     months = [
@@ -359,7 +410,6 @@ def chartify():
     plt.savefig(output_name)
     plt.show()
     print(f"Chart saved as {output_name}")
-
 
 def meme_generator():
     url = input("enter image url: ").strip()
@@ -397,7 +447,6 @@ def meme_generator():
     img.save(output)
     print(f"check✅ saved as {output}")
 
-
 def extract_audio():
     import yt_dlp
     import os
@@ -419,7 +468,6 @@ def extract_audio():
         ydl.download([url])
 
     print("✅ Audio extracted and saved as extracted_audio.mp3")
-
 
 def unemployment_by_state():
     state_codes = {
@@ -504,7 +552,6 @@ def unemployment_by_state():
     plt.show()
     print(f"✅ Chart saved as {output}")
 
-
 def yt_vid_download():
     import yt_dlp
     import os
@@ -536,6 +583,7 @@ def main():
           "unemployment by state, \n"
           "vid to mp3, \n"
           "video downloader, \n"
+          "voice record, \n"
           "create meme, \n"
           "QR code, \n"
           "create chart, \n"
@@ -580,6 +628,9 @@ def main():
             case "speech":
                 speechify()
                 break
+            case "voice record":
+                voice_record()
+                break
             case "pdf":
                 pdfify()
                 break
@@ -612,6 +663,9 @@ def main():
                 break
             case "vid to mp3":
                 extract_audio()
+                break
+            case "vid to gif":
+                vid_to_gif()
                 break
             case "unemployment by state":
                 unemployment_by_state()
